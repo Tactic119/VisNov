@@ -1,0 +1,4 @@
+repository "Group_Visual_Novel/Group_Visual_Novel@2475461868412@cloud"
+  path "/"
+    br "/main"
+    co "/main"
