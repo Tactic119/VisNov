@@ -1,0 +1,29 @@
+
+-- DIALOGUE GUIDE
+-- 1. use -- to mark thoughts down that the 'SceneManager' will ignore when reading this
+-- 2. use #Conversation to mark the start of a new conversation
+-- 3. use Character_Name to set what character speaks the following lines
+-- 4. surround text in quotations ("") to create a line of dialogue
+
+-- IMPORTANT you guys can write conversations in this format wherever and I will insert it into this file later 
+-- (or you can edit the text of this file yourself using the GitHub Repository :), ask for help with that and i gotchu)
+
+-- EXTRA
+-- empty lines are ignored dw abt them
+-- one command per line for the time being
+-- I will add commands for scene changes, sprite changes, effects, etc. as we go. If you request what you need things will go faster!
+
+-- CODING
+-- no one is required to code or touch Unity at all because I am so awesome however, if you want to I can walk anyone through downloading Unity and pulling the project from the repository
+-- (requirements) Downloading Unity, making a unity account, having a GitHib account, an hour or so :]
+
+
+
+
+-- test conversation
+
+#Conversation
+
+Character_Willow
+"Want to hear a secret?"
+"I'm self aware!"
