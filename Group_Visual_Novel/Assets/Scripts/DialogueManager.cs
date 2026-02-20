@@ -7,26 +7,34 @@ using UnityEngine.InputSystem;
 public class DialogueManager : MonoBehaviour
 {
     [Header("Text")]
-    private TextAsset textFile; // variable to hold the contets of 'Dialogue.txt'
-    [SerializeField] private TMP_Text textBox; // text in the main dialogue box
-    [SerializeField] private TMP_Text nameBox; // text in the small box for a chracter's name
+    #region DocumentsAndTMPs
+    private TextAsset textFile; 
+    [SerializeField] private TMP_Text textBox; 
+    [SerializeField] private TMP_Text nameBox;
+    #endregion
 
     [Header("Conversations")]
-    public string currentCharacter; // what character is currently speaking
-    private Dictionary<string, List<DialogueNode>> conversations
-    = new Dictionary<string, List<DialogueNode>>();
-    private string currentConversationID;
-    private int lineIndex = 0; // what line of the conversation we are on
-    [SerializeField] private float typingSpeed = 0.05f; // how fast he type writer effect goes
-    private Coroutine typingCoroutine; // evil
-    private bool isTyping = false; // weather the message is dont typing or not
+    #region Conversation State
+    public string currentCharacter; 
+    private Dictionary<string, List<DialogueNode>> conversations = new Dictionary<string, List<DialogueNode>>(); // dictionary of conversations containing lists of dialogue nodes
+    private string currentConversationID; // dictionary key for a certain conversation
+    [SerializeField] private string startingConversationID; // dictionary key for first conversation
+    private int lineIndex = 0; 
+    #endregion
+
+    #region Typewriter Effect
+    [SerializeField] private float typingSpeed = 0.05f; 
+    private Coroutine typingCoroutine; // responsible for running the typing effect overtime
+    private bool isTyping = false; 
+    #endregion
 
     [Header("Choices")]
     private bool isChoosing = false;
 
     [Header("Flags")]
-    private Dictionary<string, bool> flags = new Dictionary<string, bool>();
+    private Dictionary<string, bool> flags = new Dictionary<string, bool>(); // dictonary of flags using Strings as keys
 
+    #region DialogueNodeClass
     [System.Serializable]
     public class DialogueNode
     {
@@ -37,9 +45,11 @@ public class DialogueManager : MonoBehaviour
 
         public string setFlag;        // flag to set when this node runs
         public string requiredFlag;   // flag required for this node to appear
-        public string requiredFlagNot;
+        public string requiredFlagNot; // only show node if flag is false
     }
+    #endregion
 
+    #region ChoiceClass
     [System.Serializable]
     public class Choice
     {
@@ -48,8 +58,7 @@ public class DialogueManager : MonoBehaviour
 
         public string setFlag;
     }
-
-    [SerializeField] private string startingConversationID;
+    #endregion
 
     // runs on game start
     void Start()
@@ -83,11 +92,13 @@ public class DialogueManager : MonoBehaviour
     {
         if (!isChoosing && Keyboard.current.enterKey.wasPressedThisFrame)
         {
-            if (isTyping)
+            if (isTyping) // skip typewriter effect
             {
                 StopCoroutine(typingCoroutine);
 
+                // grab current line of dialogue in the current conversation
                 var node = conversations[currentConversationID][lineIndex];
+
                 textBox.text = node.text;
 
                 isTyping = false;
@@ -97,8 +108,10 @@ public class DialogueManager : MonoBehaviour
                 NextLine();
             }
         }
+
         if (isChoosing)
         {
+            // grab current line of dialogue in the current conversation
             var node = conversations[currentConversationID][lineIndex];
 
             for (int i = 0; i < node.choices.Count; i++)
@@ -115,17 +128,21 @@ public class DialogueManager : MonoBehaviour
     // moves to the next line in the conversation
     void NextLine()
     {
+        // makes sure conversation exists before continueing
         if (!conversations.ContainsKey(currentConversationID))
             return;
 
+        // grab current conversation
         var currentConversation = conversations[currentConversationID];
 
+        // make sure conversation isn't complete already
         if (lineIndex >= currentConversation.Count)
             return;
 
+        // grab current dialogue node
         DialogueNode node = currentConversation[lineIndex];
 
-        // If this node contains choices, show them instead of advancing
+        // if this node contains choices, show them instead of advancing
         if (node.choices != null && node.choices.Count > 0)
         {
             ShowChoices(node);
@@ -134,8 +151,20 @@ public class DialogueManager : MonoBehaviour
 
         lineIndex++;
 
-        if (lineIndex < currentConversation.Count)
+        if (lineIndex >= currentConversation.Count)
+            return;
+
+        DialogueNode nextNode = currentConversation[lineIndex];
+
+        // if next node is a choice show it
+        if (nextNode.choices != null && nextNode.choices.Count > 0)
+        {
+            ShowChoices(nextNode);
+        }
+        else
+        {
             UpdateText();
+        }
     }
 
     void ShowChoices(DialogueNode node)
