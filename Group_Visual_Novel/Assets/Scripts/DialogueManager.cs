@@ -90,20 +90,25 @@ public class DialogueManager : MonoBehaviour
     // checks for player input
     void PlayerInput()
     {
-        if (!isChoosing && Keyboard.current.enterKey.wasPressedThisFrame)
+        if (Keyboard.current.enterKey.wasPressedThisFrame)
         {
-            if (isTyping) // skip typewriter effect
+            if (isTyping)
             {
                 StopCoroutine(typingCoroutine);
 
-                // grab current line of dialogue in the current conversation
-                var node = conversations[currentConversationID][lineIndex];
-
-                textBox.text = node.text;
+                if (isChoosing)
+                {
+                    ShowChoicesInstantly();
+                }
+                else
+                {
+                    var node = conversations[currentConversationID][lineIndex];
+                    textBox.text = node.text;
+                }
 
                 isTyping = false;
             }
-            else
+            else if (!isChoosing)
             {
                 NextLine();
             }
@@ -167,14 +172,19 @@ public class DialogueManager : MonoBehaviour
         }
     }
 
+    // starts coroutine to display chocies
     void ShowChoices(DialogueNode node)
     {
         if (typingCoroutine != null)
             StopCoroutine(typingCoroutine);
 
-        isTyping = false;
+        typingCoroutine = StartCoroutine(TypeChoices(node));
+    }
 
-        isChoosing = true;
+    void ShowChoicesInstantly()
+    {
+        var node = conversations[currentConversationID][lineIndex];
+
         textBox.text = "";
 
         for (int i = 0; i < node.choices.Count; i++)
@@ -205,20 +215,24 @@ public class DialogueManager : MonoBehaviour
         UpdateText();
     }
 
+    // 
     void UpdateText()
     {
+        // safety check
         if (!conversations.ContainsKey(currentConversationID))
             return;
 
+        // get current conversation
         var conversation = conversations[currentConversationID];
 
+        // looks for next valid node (node that should be shown based on flags)
         while (lineIndex < conversation.Count)
         {
+            // assume node is valid until proven false
             DialogueNode checkNode = conversation[lineIndex];
-
             bool meetsRequired = true;
 
-            // Requires TRUE
+            // requires flag to be true
             if (!string.IsNullOrEmpty(checkNode.requiredFlag))
             {
                 if (!flags.ContainsKey(checkNode.requiredFlag) ||
@@ -228,7 +242,7 @@ public class DialogueManager : MonoBehaviour
                 }
             }
 
-            // Requires FALSE
+            // requires flag to be false
             if (!string.IsNullOrEmpty(checkNode.requiredFlagNot))
             {
                 if (flags.ContainsKey(checkNode.requiredFlagNot) &&
@@ -238,32 +252,39 @@ public class DialogueManager : MonoBehaviour
                 }
             }
 
+            // node is valid, stop search
             if (meetsRequired)
                 break;
 
+            // skips to next node if this nod is invalid
             lineIndex++;
         }
 
+        // stop if no more lines
         if (lineIndex >= conversation.Count)
             return;
 
+        // get the next valid node
         DialogueNode node = conversation[lineIndex];
 
-        // 🔹 Set flag if this node sets one
+        // Set flag if this node sets one
         if (!string.IsNullOrEmpty(node.setFlag))
         {
             flags[node.setFlag] = true;
         }
 
+        // display speacker name
         nameBox.text = node.speaker;
 
+        // stop any previous typewriter effects
         if (typingCoroutine != null)
             StopCoroutine(typingCoroutine);
 
+        // start typewriter effect
         typingCoroutine = StartCoroutine(TypeText(node.text));
     }
 
-    // coroutine that types messages character by character
+    // coroutine that types dialogue character by character
     IEnumerator TypeText(string dialogue)
     {
         // currently typing message
@@ -283,6 +304,33 @@ public class DialogueManager : MonoBehaviour
         isTyping = false;
     }
 
+    // coroutine that types choices character by character
+    IEnumerator TypeChoices(DialogueNode node)
+    {
+        isTyping = true;
+        isChoosing = true;
+
+        // remove previous text first
+        textBox.text = "";
+
+        // type choices character by character
+        for (int i = 0; i < node.choices.Count; i++)
+        {
+            // set line in style we want
+            string line = $"{i + 1}. {node.choices[i].choiceText}\n";
+
+            // build letter by letter
+            foreach (char letter in line)
+            {
+                textBox.text += letter;
+                yield return new WaitForSeconds(typingSpeed);
+            }
+        }
+
+        // finished typing
+        isTyping = false;
+    }
+
     // Seprate lines of text in Dialogue.txt and decode them
     void ParseDialogue(string text)
     {
@@ -299,7 +347,7 @@ public class DialogueManager : MonoBehaviour
             if (string.IsNullOrEmpty(line) || line.StartsWith("--"))
                 continue;
 
-            if (line.StartsWith("#Conversation"))
+            if (line.StartsWith("#Conversation")) // start of a new conversation
             {
                 currentConversationID_Local = line.Replace("#Conversation ", "").Trim();
                 currentConversation = new List<DialogueNode>();
@@ -307,13 +355,13 @@ public class DialogueManager : MonoBehaviour
                 continue;
             }
 
-            if (line.StartsWith("Character_"))
+            if (line.StartsWith("Character_")) // line that sets what character is speaking
             {
                 currentSpeaker = line.Replace("Character_", "");
                 continue;
             }
 
-            if (line.StartsWith("\"") && line.EndsWith("\""))
+            if (line.StartsWith("\"") && line.EndsWith("\"")) // dialogue line
             {
                 string cleanedLine = line.Trim('"');
 
@@ -327,7 +375,7 @@ public class DialogueManager : MonoBehaviour
                 continue;
             }
 
-            if (line.StartsWith("#Choice"))
+            if (line.StartsWith("#Choice"))  // adds choice node to conversation
             {
                 DialogueNode choiceNode = new DialogueNode
                 {
@@ -340,18 +388,21 @@ public class DialogueManager : MonoBehaviour
                 continue;
             }
 
-            if (line.Contains("->"))
+            if (line.Contains("->")) // options for a choice
             {
+                // split between choice text and path|flag
                 string[] parts = line.Split("->");
 
+                // clean line
                 string leftPart = parts[0].Trim().Trim('"');
                 string rightPart = parts[1].Trim();
 
                 string targetID;
                 string flagToSet = null;
 
-                if (rightPart.Contains("|"))
+                if (rightPart.Contains("|")) // a flag exsists with the choice
                 {
+                    // split path from flag
                     string[] targetParts = rightPart.Split("|");
                     targetID = targetParts[0].Trim();
                     flagToSet = targetParts[1].Trim();
@@ -363,6 +414,7 @@ public class DialogueManager : MonoBehaviour
 
                 var lastNode = currentConversation[currentConversation.Count - 1];
 
+                // add choice to node
                 lastNode.choices.Add(new Choice
                 {
                     choiceText = leftPart,
@@ -373,7 +425,7 @@ public class DialogueManager : MonoBehaviour
                 continue;
             }
 
-            if (line.StartsWith("#SetFlag"))
+            if (line.StartsWith("#SetFlag")) // set flag without the use of a choice
             {
                 string flagName = line.Replace("#SetFlag", "").Trim();
 
@@ -386,7 +438,7 @@ public class DialogueManager : MonoBehaviour
                 continue;
             }
 
-            if (line.StartsWith("#RequiresNot"))
+            if (line.StartsWith("#RequiresNot")) // option requires a flag to be false
             {
                 string flagName = line.Replace("#RequiresNot", "").Trim();
 
@@ -399,7 +451,7 @@ public class DialogueManager : MonoBehaviour
                 continue;
             }
 
-            if (line.StartsWith("#Requires"))
+            if (line.StartsWith("#Requires")) // option requires a flag to be false
             {
                 string flagName = line.Replace("#Requires", "").Trim();
 
@@ -413,4 +465,6 @@ public class DialogueManager : MonoBehaviour
             }
         }
     }
+
+
 }
