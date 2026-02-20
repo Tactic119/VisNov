@@ -22,9 +22,54 @@
 
 -- test conversation
 
-#Conversation
+#Conversation Test
 
 Character_Willow
 "Want to hear a secret?"
 "I'm self aware!"
 "Test on laptop!"
+
+#Choice
+"Go left" -> LeftPath
+"Go right" -> RightPath
+
+#Conversation LeftPath
+Character_Willow
+
+"You went left."
+
+#Conversation RightPath
+Character_Willow
+"You went right."
+
+
+
+
+#Conversation Intro
+Character_Guard
+"Halt! Who goes there?"
+
+#Choice
+"I am a traveler." -> TravelerPath
+"I am the king." -> KingPath | LiedToGuard
+
+#Conversation TravelerPath
+Character_Guard
+"Very well, traveler."
+#SetFlag MetGuard
+"You may enter the city."
+
+#Conversation KingPath
+Character_Guard
+"You are NOT the king!"
+"You shall not pass."
+
+#Conversation SecretRoom
+Character_Guard
+"You have the key. You may enter."
+#Requires HasKey
+
+#Conversation FindKey
+Character_Player
+"You found a key!"
+#SetFlag HasKey
