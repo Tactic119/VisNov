@@ -776,7 +776,7 @@ MonoBehaviour:
   textBox: {fileID: 1674236062}
   nameBox: {fileID: 868132093}
   currentCharacter: 
-  startingConversationID: Intro
+  startingConversationID: Example
   typingSpeed: 0.05
 --- !u!4 &696594654
 Transform:
@@ -1203,7 +1203,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4290230199
-  m_fontColor: {r: 0.7169812, g: 0.7169812, b: 0.7169812, a: 1}
+  m_fontColor: {r: 0, g: 0, b: 0, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:

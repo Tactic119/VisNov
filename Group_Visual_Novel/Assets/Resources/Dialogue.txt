@@ -4,6 +4,7 @@
 -- 2. use #Conversation to mark the start of a new conversation
 -- 3. use Character_Name to set what character speaks the following lines
 -- 4. surround text in quotations ("") to create a line of dialogue
+-- 5. advanced parts are described in depth below (choices, dialogue conditions, and/or logic)
 
 -- IMPORTANT you guys can write conversations in this format wherever and I will insert it into this file later 
 -- (or you can edit the text of this file yourself using the GitHub Repository :), ask for help with that and i gotchu)
@@ -17,59 +18,128 @@
 -- no one is required to code or touch Unity at all because I am so awesome however, if you want to I can walk anyone through downloading Unity and pulling the project from the repository
 -- (requirements) Downloading Unity, making a unity account, having a GitHib account, an hour or so :]
 
+-- CHOICES
+-- start with #choice to makr a choice node
+-- format choices like so:
+--		"Option A" -> (conversation you go to) | (result of change) | (choice conditions)
+--      EX: Speak politely." -> Polite | reputation += 2 | hasPass == true && friendshipWithGuard >= 3
+--          - takes player to Polite converation, give 2 reputation, and requirees both having the pass and having at least 3 friendship points with the guard to select this choice
+--      - multiple results: use ; between results
+          EX: Speak politely." -> Polite | reputation += 2; honnor += 5 | isNice && isCaring
 
 
+-- DIALOGUE CONDITIONS
+-- if you want dialogue to displayed based on a condition use #If condition_name
+-- EX: #If strength >= 3
+--     Character_Guard
+--     "You look beffy asl bro."
 
--- test conversation
 
-#Conversation Test
-
-Character_Willow
-"Want to hear a secret?"
-"I'm self aware!"
-"Test on laptop!"
-
-#Choice
-"Go left" -> LeftPath
-"Go right" -> RightPath
-
-#Conversation LeftPath
-Character_Willow
-
-"You went left."
-
-#Conversation RightPath
-Character_Willow
-"You went right."
 
 
 
 
 #Conversation Intro
+
+Character_Narrator
+"You arrive at the gates of Silverkeep."
+
+#Set reputation = 0
+#Set hasPass = false
+#Set strength = 2
+
 Character_Guard
-"Halt! Who goes there?"
+"Halt. State your business."
 
 #Choice
-"I am a traveler." -> TravelerPath
-"I am the king." -> KingPath | LiedToGuard
+"Speak politely." -> Polite | reputation += 2
+"Threaten him." -> Threaten | reputation -= 2
+"Show royal pass." -> RoyalPass | | hasPass == true
 
-#Conversation TravelerPath
-Character_Guard
-"Very well, traveler."
-#SetFlag MetGuard
-"You may enter the city."
+#Conversation Polite
 
-#Conversation KingPath
-Character_Guard
-"You are NOT the king!"
-"You shall not pass."
-
-#Conversation SecretRoom
-Character_Guard
-"You have the key. You may enter."
-#Requires HasKey
-
-#Conversation FindKey
 Character_Player
-"You found a key!"
-#SetFlag HasKey
+"I am but a traveler seeking entry."
+
+Character_Guard
+"Hmm. You seem respectful."
+
+#If reputation >= 2
+Character_Guard
+"I will allow you inside."
+
+#Set hasPass = true
+
+#Choice
+"Enter city." -> City | | hasPass == true && reputation >= 2
+"Change your mind." -> Threaten
+
+#Conversation Threaten
+
+Character_Player
+"Move aside."
+
+Character_Guard
+"Bold words..."
+
+#If strength >= 3
+Character_Guard
+"You look strong. I won't risk it."
+
+#If strength < 3
+Character_Guard
+"You are not intimidating."
+
+#Choice
+"Attack." -> Fight | reputation -= 1
+"Back down." -> Intro
+
+#Conversation RoyalPass
+
+Character_Player
+"I have royal permission."
+
+Character_Guard
+"...That checks out."
+
+#Set reputation += 3
+
+#Choice
+"Enter proudly." -> City
+
+#Conversation Fight
+
+Character_Narrator
+"A fight breaks out."
+
+#If strength >= 3 || reputation >= 5
+Character_Narrator
+"You overpower the guard."
+
+#If strength < 3 && reputation < 5
+Character_Narrator
+"You are defeated."
+
+#Choice
+"Retry." -> Intro
+
+#Conversation City
+
+Character_Narrator
+"You enter Silverkeep."
+
+#If reputation >= 5
+Character_Narrator
+"Citizens greet you warmly."
+
+#If reputation < 5
+Character_Narrator
+"People eye you cautiously."
+
+#Choice
+"End Demo." -> End
+
+#Conversation End
+
+Character_Narrator
+"The story ends here."

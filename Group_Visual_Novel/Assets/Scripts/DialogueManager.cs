@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -30,9 +31,13 @@ public class DialogueManager : MonoBehaviour
 
     [Header("Choices")]
     private bool isChoosing = false;
+    private List<Choice> currentVisibleChoices;
+    private List<bool> currentChoiceUnlockedState;
 
     [Header("Flags")]
-    private Dictionary<string, bool> flags = new Dictionary<string, bool>(); // dictonary of flags using Strings as keys
+    [Header("Variables")]
+    private Dictionary<string, int> intVariables = new Dictionary<string, int>();
+    private Dictionary<string, bool> boolVariables = new Dictionary<string, bool>();
 
     #region DialogueNodeClass
     [System.Serializable]
@@ -43,9 +48,11 @@ public class DialogueManager : MonoBehaviour
 
         public List<Choice> choices;
 
-        public string setFlag;        // flag to set when this node runs
-        public string requiredFlag;   // flag required for this node to appear
-        public string requiredFlagNot; // only show node if flag is false
+        public string requiredCondition;
+        public List<string> variableChanges = new List<string>();
+
+        [System.NonSerialized]
+        public bool hasExecuted;
     }
     #endregion
 
@@ -55,8 +62,8 @@ public class DialogueManager : MonoBehaviour
     {
         public string choiceText;
         public string targetConversationID;
-
-        public string setFlag;
+        public List<string> variableChanges = new List<string>();
+        public string requiredCondition; 
     }
     #endregion
 
@@ -116,15 +123,15 @@ public class DialogueManager : MonoBehaviour
 
         if (isChoosing)
         {
-            // grab current line of dialogue in the current conversation
-            var node = conversations[currentConversationID][lineIndex];
-
-            for (int i = 0; i < node.choices.Count; i++)
+            if (isChoosing && currentVisibleChoices != null)
             {
-                if (Keyboard.current[(Key)((int)Key.Digit1 + i)].wasPressedThisFrame)
+                for (int i = 0; i < currentVisibleChoices.Count; i++)
                 {
-                    SelectChoice(i);
-                    break;
+                    if (Keyboard.current[(Key)((int)Key.Digit1 + i)].wasPressedThisFrame)
+                    {
+                        SelectChoice(i);
+                        break;
+                    }
                 }
             }
         }
@@ -183,32 +190,37 @@ public class DialogueManager : MonoBehaviour
 
     void ShowChoicesInstantly()
     {
-        var node = conversations[currentConversationID][lineIndex];
-
         textBox.text = "";
 
-        for (int i = 0; i < node.choices.Count; i++)
+        for (int i = 0; i < currentVisibleChoices.Count; i++)
         {
-            textBox.text += $"{i + 1}. {node.choices[i].choiceText}\n";
+            textBox.text += $"{i + 1}. {currentVisibleChoices[i].choiceText}\n";
         }
     }
 
     void SelectChoice(int index)
     {
-        var node = conversations[currentConversationID][lineIndex];
-
-        if (index >= node.choices.Count)
+        if (currentVisibleChoices == null || index < 0 || index >= currentVisibleChoices.Count)
             return;
 
-        var selectedChoice = node.choices[index];
-
-        // 🔹 Set flag from choice
-        if (!string.IsNullOrEmpty(selectedChoice.setFlag))
+        if (!currentChoiceUnlockedState[index])
         {
-            flags[selectedChoice.setFlag] = true;
+            return;
         }
 
-        currentConversationID = selectedChoice.targetConversationID;
+        var selectedChoice = currentVisibleChoices[index];
+
+        // Apply variable changes
+        if (selectedChoice.variableChanges != null)
+        {
+            foreach (var change in selectedChoice.variableChanges)
+                ApplyVariableChange(change);
+        }
+
+        // Move to target conversation
+        if (!string.IsNullOrEmpty(selectedChoice.targetConversationID))
+            currentConversationID = selectedChoice.targetConversationID;
+
         lineIndex = 0;
         isChoosing = false;
 
@@ -225,52 +237,34 @@ public class DialogueManager : MonoBehaviour
         // get current conversation
         var conversation = conversations[currentConversationID];
 
-        // looks for next valid node (node that should be shown based on flags)
         while (lineIndex < conversation.Count)
         {
-            // assume node is valid until proven false
             DialogueNode checkNode = conversation[lineIndex];
-            bool meetsRequired = true;
 
-            // requires flag to be true
-            if (!string.IsNullOrEmpty(checkNode.requiredFlag))
-            {
-                if (!flags.ContainsKey(checkNode.requiredFlag) ||
-                    !flags[checkNode.requiredFlag])
-                {
-                    meetsRequired = false;
-                }
-            }
-
-            // requires flag to be false
-            if (!string.IsNullOrEmpty(checkNode.requiredFlagNot))
-            {
-                if (flags.ContainsKey(checkNode.requiredFlagNot) &&
-                    flags[checkNode.requiredFlagNot])
-                {
-                    meetsRequired = false;
-                }
-            }
-
-            // node is valid, stop search
-            if (meetsRequired)
+            if (EvaluateCondition(checkNode.requiredCondition))
                 break;
 
-            // skips to next node if this nod is invalid
             lineIndex++;
         }
 
-        // stop if no more lines
         if (lineIndex >= conversation.Count)
+        {
+            Debug.Log("Conversation Ended.");
             return;
+        }
 
         // get the next valid node
         DialogueNode node = conversation[lineIndex];
 
         // Set flag if this node sets one
-        if (!string.IsNullOrEmpty(node.setFlag))
+        if (!node.hasExecuted)
         {
-            flags[node.setFlag] = true;
+            foreach (var change in node.variableChanges)
+            {
+                ApplyVariableChange(change);
+            }
+
+            node.hasExecuted = true;
         }
 
         // display speacker name
@@ -310,25 +304,155 @@ public class DialogueManager : MonoBehaviour
         isTyping = true;
         isChoosing = true;
 
-        // remove previous text first
         textBox.text = "";
+        currentVisibleChoices = node.choices ?? new List<Choice>();
+        currentChoiceUnlockedState = new List<bool>();
 
-        // type choices character by character
-        for (int i = 0; i < node.choices.Count; i++)
+        for (int i = 0; i < currentVisibleChoices.Count; i++)
         {
-            // set line in style we want
-            string line = $"{i + 1}. {node.choices[i].choiceText}\n";
+            Choice choice = currentVisibleChoices[i];
+            bool unlocked = string.IsNullOrEmpty(choice.requiredCondition) ? true : EvaluateCondition(choice.requiredCondition);
+            currentChoiceUnlockedState.Add(unlocked);
 
-            // build letter by letter
-            foreach (char letter in line)
+            string displayText = unlocked
+                ? $"{i + 1}. {choice.choiceText}\n"
+                : $"<color=#888888>{i + 1}. {choice.choiceText}</color>\n";
+
+            foreach (char letter in displayText)
             {
                 textBox.text += letter;
                 yield return new WaitForSeconds(typingSpeed);
             }
         }
 
-        // finished typing
         isTyping = false;
+    }
+
+    // INT
+    public void SetInt(string key, int value)
+    {
+        intVariables[key] = value;
+    }
+
+    public int GetInt(string key, int defaultValue = 0)
+    {
+        return intVariables.TryGetValue(key, out int value) ? value : defaultValue;
+    }
+
+    // BOOL
+    public void SetBool(string key, bool value)
+    {
+        boolVariables[key] = value;
+    }
+
+    public bool GetBool(string key, bool defaultValue = false)
+    {
+        return boolVariables.TryGetValue(key, out bool value) ? value : defaultValue;
+    }
+
+    bool EvaluateCondition(string condition)
+    {
+        if (string.IsNullOrEmpty(condition))
+            return true;
+
+        // Split OR first
+        string[] orParts = condition.Split(new string[] { "||" }, System.StringSplitOptions.None);
+
+        foreach (string orPart in orParts)
+        {
+            if (EvaluateAndCondition(orPart.Trim()))
+                return true; // if any OR group passes, condition is true
+        }
+
+        return false;
+    }
+
+    bool EvaluateSingleCondition(string condition)
+    {
+        string[] parts = condition.Split(new char[] { ' ' }, System.StringSplitOptions.RemoveEmptyEntries);
+
+        if (parts.Length != 3)
+            return false;
+
+        string varName = parts[0];
+        string op = parts[1];
+        string valueString = parts[2];
+
+        // INT comparison
+        if (int.TryParse(valueString, out int intValue))
+        {
+            int current = GetInt(varName);
+
+            switch (op)
+            {
+                case "==": return current == intValue;
+                case "!=": return current != intValue;
+                case ">": return current > intValue;
+                case "<": return current < intValue;
+                case ">=": return current >= intValue;
+                case "<=": return current <= intValue;
+            }
+        }
+
+        // BOOL comparison
+        if (bool.TryParse(valueString, out bool boolValue))
+        {
+            bool current = GetBool(varName);
+
+            switch (op)
+            {
+                case "==": return current == boolValue;
+                case "!=": return current != boolValue;
+            }
+        }
+
+        return false;
+    }
+
+    bool EvaluateAndCondition(string condition)
+    {
+        string[] andParts = condition.Split(new string[] { "&&" }, System.StringSplitOptions.None);
+
+        foreach (string andPart in andParts)
+        {
+            if (!EvaluateSingleCondition(andPart.Trim()))
+                return false; // If any AND fails, whole AND fails
+        }
+
+        return true;
+    }
+
+    void ApplyVariableChange(string expression)
+    {
+        if (string.IsNullOrEmpty(expression))
+            return;
+
+        string[] parts = expression.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length != 3)
+            return;
+
+        string varName = parts[0];
+        string op = parts[1];
+        string valueString = parts[2];
+
+        // INT
+        if (int.TryParse(valueString, out int intValue))
+        {
+            int current = GetInt(varName);
+
+            switch (op)
+            {
+                case "=": SetInt(varName, intValue); break;
+                case "+=": SetInt(varName, current + intValue); break;
+                case "-=": SetInt(varName, current - intValue); break;
+            }
+        }
+        // BOOL
+        else if (bool.TryParse(valueString, out bool boolValue))
+        {
+            if (op == "=")
+                SetBool(varName, boolValue);
+        }
     }
 
     // Seprate lines of text in Dialogue.txt and decode them
@@ -347,7 +471,8 @@ public class DialogueManager : MonoBehaviour
             if (string.IsNullOrEmpty(line) || line.StartsWith("--"))
                 continue;
 
-            if (line.StartsWith("#Conversation")) // start of a new conversation
+            // Start of new conversation
+            if (line.StartsWith("#Conversation"))
             {
                 currentConversationID_Local = line.Replace("#Conversation ", "").Trim();
                 currentConversation = new List<DialogueNode>();
@@ -355,13 +480,15 @@ public class DialogueManager : MonoBehaviour
                 continue;
             }
 
-            if (line.StartsWith("Character_")) // line that sets what character is speaking
+            // Set speaker
+            if (line.StartsWith("Character_"))
             {
-                currentSpeaker = line.Replace("Character_", "");
+                currentSpeaker = line.Replace("Character_", "").Trim();
                 continue;
             }
 
-            if (line.StartsWith("\"") && line.EndsWith("\"")) // dialogue line
+            // Dialogue line
+            if (line.StartsWith("\"") && line.EndsWith("\""))
             {
                 string cleanedLine = line.Trim('"');
 
@@ -375,7 +502,8 @@ public class DialogueManager : MonoBehaviour
                 continue;
             }
 
-            if (line.StartsWith("#Choice"))  // adds choice node to conversation
+            // Start of choice block
+            if (line.StartsWith("#Choice"))
             {
                 DialogueNode choiceNode = new DialogueNode
                 {
@@ -388,77 +516,86 @@ public class DialogueManager : MonoBehaviour
                 continue;
             }
 
-            if (line.Contains("->")) // options for a choice
+            // Choice line with -> syntax
+            if (line.Contains("->"))
             {
-                // split between choice text and path|flag
                 string[] parts = line.Split("->");
-
-                // clean line
                 string leftPart = parts[0].Trim().Trim('"');
                 string rightPart = parts[1].Trim();
 
-                string targetID;
-                string flagToSet = null;
+                string targetID = null;
+                string setExpression = null;
+                string condition = null;
 
-                if (rightPart.Contains("|")) // a flag exsists with the choice
+                string[] segments = rightPart.Split('|');
+
+                if (segments.Length > 0) targetID = segments[0].Trim();
+                if (segments.Length > 1) setExpression = segments[1].Trim();
+                if (segments.Length > 2) condition = segments[2].Trim();
+
+                // Find the last node in the conversation that has a choices list
+                DialogueNode lastChoiceNode = null;
+                for (int i = currentConversation.Count - 1; i >= 0; i--)
                 {
-                    // split path from flag
-                    string[] targetParts = rightPart.Split("|");
-                    targetID = targetParts[0].Trim();
-                    flagToSet = targetParts[1].Trim();
+                    if (currentConversation[i].choices != null)
+                    {
+                        lastChoiceNode = currentConversation[i];
+                        break;
+                    }
                 }
-                else
+
+                if (lastChoiceNode == null)
                 {
-                    targetID = rightPart;
+                    Debug.LogWarning("No choice node found for: " + leftPart);
+                    continue;
                 }
 
-                var lastNode = currentConversation[currentConversation.Count - 1];
-
-                // add choice to node
-                lastNode.choices.Add(new Choice
+                Choice choice = new Choice
                 {
                     choiceText = leftPart,
                     targetConversationID = targetID,
-                    setFlag = flagToSet
-                });
+                    requiredCondition = condition
+                };
 
+                if (!string.IsNullOrEmpty(setExpression))
+                {
+                    string[] changes = setExpression.Split(';');
+                    foreach (var change in changes)
+                        choice.variableChanges.Add(change.Trim());
+                }
+
+                lastChoiceNode.choices.Add(choice);
                 continue;
             }
 
-            if (line.StartsWith("#SetFlag")) // set flag without the use of a choice
+            // #Set variables
+            if (line.StartsWith("#Set"))
             {
-                string flagName = line.Replace("#SetFlag", "").Trim();
+                string expression = line.Replace("#Set", "").Trim();
 
                 if (currentConversation != null && currentConversation.Count > 0)
                 {
                     var lastNode = currentConversation[currentConversation.Count - 1];
-                    lastNode.setFlag = flagName;
+                    string[] changes = expression.Split(';');
+
+                    foreach (var change in changes)
+                    {
+                        lastNode.variableChanges.Add(change.Trim());
+                    }
                 }
 
                 continue;
             }
 
-            if (line.StartsWith("#RequiresNot")) // option requires a flag to be false
+            // #If condition
+            if (line.StartsWith("#If"))
             {
-                string flagName = line.Replace("#RequiresNot", "").Trim();
+                string condition = line.Replace("#If", "").Trim();
 
                 if (currentConversation != null && currentConversation.Count > 0)
                 {
                     var lastNode = currentConversation[currentConversation.Count - 1];
-                    lastNode.requiredFlagNot = flagName;
-                }
-
-                continue;
-            }
-
-            if (line.StartsWith("#Requires")) // option requires a flag to be false
-            {
-                string flagName = line.Replace("#Requires", "").Trim();
-
-                if (currentConversation != null && currentConversation.Count > 0)
-                {
-                    var lastNode = currentConversation[currentConversation.Count - 1];
-                    lastNode.requiredFlag = flagName;
+                    lastNode.requiredCondition = condition;
                 }
 
                 continue;
