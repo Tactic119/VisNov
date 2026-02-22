@@ -18,21 +18,6 @@
 -- no one is required to code or touch Unity at all because I am so awesome however, if you want to I can walk anyone through downloading Unity and pulling the project from the repository
 -- (requirements) Downloading Unity, making a unity account, having a GitHib account, an hour or so :]
 
--- CHOICES
--- start with #choice to makr a choice node
--- format choices like so:
---		"Option A" -> (conversation you go to) | (result of change) | (choice conditions)
---      EX: Speak politely." -> Polite | reputation += 2 | hasPass == true && friendshipWithGuard >= 3
---          - takes player to Polite converation, give 2 reputation, and requirees both having the pass and having at least 3 friendship points with the guard to select this choice
---      - multiple results: use ; between results
-          EX: Speak politely." -> Polite | reputation += 2; honnor += 5 | isNice && isCaring
-
-
--- DIALOGUE CONDITIONS
--- if you want dialogue to displayed based on a condition use #If condition_name
--- EX: #If strength >= 3
---     Character_Guard
---     "You look beffy asl bro."
 
 
 

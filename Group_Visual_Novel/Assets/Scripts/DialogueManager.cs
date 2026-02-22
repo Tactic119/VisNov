@@ -70,8 +70,10 @@ public class DialogueManager : MonoBehaviour
     // runs on game start
     void Start()
     {
+        startingConversationID = "Intro";
+
         // load dialogue file as 'textFile'
-        textFile = Resources.Load<TextAsset>("dialogue");
+        textFile = Resources.Load<TextAsset>("Dialogue");
 
         // make sure dialogue isn't empty, safety check
         if (textFile == null)
@@ -192,9 +194,23 @@ public class DialogueManager : MonoBehaviour
     {
         textBox.text = "";
 
+        currentChoiceUnlockedState = new List<bool>();
+
         for (int i = 0; i < currentVisibleChoices.Count; i++)
         {
-            textBox.text += $"{i + 1}. {currentVisibleChoices[i].choiceText}\n";
+            Choice choice = currentVisibleChoices[i];
+
+            bool unlocked = string.IsNullOrEmpty(choice.requiredCondition)
+                ? true
+                : EvaluateCondition(choice.requiredCondition);
+
+            currentChoiceUnlockedState.Add(unlocked);
+
+            string displayText = unlocked
+              ? $"{i + 1}. {choice.choiceText}\n"
+              : $"<color=#AA0000>{i + 1}. {choice.choiceText}</color>\n";
+
+            textBox.text += displayText;
         }
     }
 
@@ -315,8 +331,8 @@ public class DialogueManager : MonoBehaviour
             currentChoiceUnlockedState.Add(unlocked);
 
             string displayText = unlocked
-                ? $"{i + 1}. {choice.choiceText}\n"
-                : $"<color=#888888>{i + 1}. {choice.choiceText}</color>\n";
+               ? $"{i + 1}. {choice.choiceText}\n"
+               : $"<color=#AA0000>{i + 1}. {choice.choiceText}</color>\n";
 
             foreach (char letter in displayText)
             {
@@ -458,6 +474,8 @@ public class DialogueManager : MonoBehaviour
     // Seprate lines of text in Dialogue.txt and decode them
     void ParseDialogue(string text)
     {
+        text = text.Replace("\r", ""); 
+        text = text.Trim();            
         string[] lines = text.Split('\n');
 
         List<DialogueNode> currentConversation = null;
@@ -490,6 +508,12 @@ public class DialogueManager : MonoBehaviour
             // Dialogue line
             if (line.StartsWith("\"") && line.EndsWith("\""))
             {
+                if (currentConversation == null)
+                {
+                    Debug.LogError("Dialogue line found before #Conversation block.");
+                    continue;
+                }
+
                 string cleanedLine = line.Trim('"');
 
                 currentConversation.Add(new DialogueNode

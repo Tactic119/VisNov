@@ -776,7 +776,7 @@ MonoBehaviour:
   textBox: {fileID: 1674236062}
   nameBox: {fileID: 868132093}
   currentCharacter: 
-  startingConversationID: Example
+  startingConversationID: Intro
   typingSpeed: 0.05
 --- !u!4 &696594654
 Transform:
