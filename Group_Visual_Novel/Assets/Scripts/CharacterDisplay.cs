@@ -4,19 +4,25 @@ using UnityEngine;
 
 public class CharacterDisplay : MonoBehaviour
 {
+    [Header("Character")]
     public string characterName;
+
+    [Header("Rendering")]
     public SpriteRenderer targetRenderer;
 
     private SceneManager sceneManager;
     private Coroutine currentLoop;
+    private Vector3 baseLocalPosition;
 
     void Awake()
     {
-        sceneManager = GameObject.FindWithTag("ManagerObject").GetComponent<SceneManager>();
+        sceneManager = GameObject.FindWithTag("ManagerObject")
+            .GetComponent<SceneManager>();
 
-        // Auto-assign if left empty
         if (targetRenderer == null)
             targetRenderer = GetComponent<SpriteRenderer>();
+
+        baseLocalPosition = transform.localPosition;
     }
 
     public void PlayFullBodyLoop(List<string> keys, float delay)
@@ -36,21 +42,27 @@ public class CharacterDisplay : MonoBehaviour
 
         while (true)
         {
-            Sprite sprite = sceneManager
-                .GetCharacterFullBody(characterName, keys[index]);
+            var entry = sceneManager
+                .GetCharacterFullBodyEntry(characterName, keys[index]);
 
-            if (sprite != null)
-                targetRenderer.sprite = sprite;
+            if (entry != null)
+            {
+                targetRenderer.sprite = entry.sprite;
+                transform.localPosition = baseLocalPosition + (Vector3)entry.offset;
+            }
 
             index = (index + 1) % keys.Count;
-
             yield return new WaitForSeconds(delay);
         }
     }
 
+    // end current animation loop
     public void StopLoop()
     {
         if (currentLoop != null)
+        {
             StopCoroutine(currentLoop);
+            currentLoop = null;
+        }
     }
 }

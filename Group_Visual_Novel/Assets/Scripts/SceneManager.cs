@@ -1,8 +1,6 @@
-using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
-using UnityEngine.SceneManagement;
-using static DialogueManager;
 
 public class SceneManager : MonoBehaviour
 {
@@ -10,11 +8,8 @@ public class SceneManager : MonoBehaviour
     public List<Character> characters;
     private Dictionary<string, Character> characterDictionary;
 
-    [Header("Character Displays")]
+    [Header("CharacterDisplays")]
     public CharacterDisplay willowDisplay;
-    
-    private Coroutine currentLoop;
-
 
     [System.Serializable]
     public class Character
@@ -22,122 +17,100 @@ public class SceneManager : MonoBehaviour
         public string characterName;
 
         [Header("Sprites")]
-        // out of conversation (in background)
         public List<SpriteEntry> fullBodySpriteEntries;
-        // in conversation (talking)
         public List<SpriteEntry> halfBodySpriteEntries;
 
         // runtime dictionaries
-        private Dictionary<string, Sprite> fullBodySprites;
-        private Dictionary<string, Sprite> halfBodySprites;
+        private Dictionary<string, SpriteEntry> fullBodyEntries;
+        private Dictionary<string, SpriteEntry> halfBodyEntries;
 
-        // builds dictionaries from the lists
         public void Initialize()
         {
-            // initialize runtime dictionaries
-            fullBodySprites = new Dictionary<string, Sprite>();
-            halfBodySprites = new Dictionary<string, Sprite>();
+            fullBodyEntries = new Dictionary<string, SpriteEntry>();
+            halfBodyEntries = new Dictionary<string, SpriteEntry>();
 
-            // set up full body sprite dictionary 
             foreach (var entry in fullBodySpriteEntries)
             {
-                // prevent duplicate entrys
-                if (!fullBodySprites.ContainsKey(entry.key))
-                    fullBodySprites.Add(entry.key, entry.sprite);
+                if (!fullBodyEntries.ContainsKey(entry.key))
+                    fullBodyEntries.Add(entry.key, entry);
                 else
                     Debug.LogWarning($"Duplicate full body key '{entry.key}' on {characterName}");
             }
 
-            // set up half body sprite dictionary
             foreach (var entry in halfBodySpriteEntries)
             {
-                // prevent duplicate entrys
-                if (!halfBodySprites.ContainsKey(entry.key))
-                    halfBodySprites.Add(entry.key, entry.sprite);
+                if (!halfBodyEntries.ContainsKey(entry.key))
+                    halfBodyEntries.Add(entry.key, entry);
                 else
                     Debug.LogWarning($"Duplicate half body key '{entry.key}' on {characterName}");
             }
         }
 
-        // returns full body sprite based on key input
-        public Sprite GetFullBody(string key)
+        public SpriteEntry GetFullBodyEntry(string key)
         {
-            fullBodySprites.TryGetValue(key, out Sprite sprite);
-            return sprite;
+            fullBodyEntries.TryGetValue(key, out SpriteEntry entry);
+            return entry;
         }
 
-        // returns half body sprite based on key input
-        public Sprite GetHalfBody(string key)
+        public SpriteEntry GetHalfBodyEntry(string key)
         {
-            halfBodySprites.TryGetValue(key, out Sprite sprite);
-            return sprite;
+            halfBodyEntries.TryGetValue(key, out SpriteEntry entry);
+            return entry;
         }
-
-
     }
 
-    // contains one entry in a sprite dictionary
     [System.Serializable]
     public class SpriteEntry
     {
-        public string key;     
+        public string key;
         public Sprite sprite;
-    }
-
-
-    void Start()
-    {
-
+        public Vector2 offset;
     }
 
     void Awake()
     {
-        // create dictionary of characters
         characterDictionary = new Dictionary<string, Character>();
 
-        // set up sprite dictionaries
         foreach (var character in characters)
         {
             character.Initialize();
             characterDictionary[character.characterName] = character;
         }
+
+        willowDisplay = GameObject.Find("WillowSprite").GetComponent<CharacterDisplay>();
     }
 
-    void Update()
+    private void Update()
     {
         if (Input.GetKeyDown(KeyCode.E))
         {
             willowDisplay.PlayFullBodyLoop(
-                new List<string> {"walk1","walk2","walk3","walk4"},
-                0.30f
+                new List<string> { "walk1", "walk2", "walk3", "walk4" },
+                0.3f
                 );
         }
     }
 
-    // get a full body sprite of a character based on name and key input
-    public Sprite GetCharacterFullBody(string characterName, string expressionKey)
+
+    public SpriteEntry GetCharacterFullBodyEntry(string characterName, string key)
     {
         if (characterDictionary.TryGetValue(characterName, out Character character))
         {
-            return character.GetFullBody(expressionKey);
+            return character.GetFullBodyEntry(key);
         }
 
         Debug.LogWarning($"Character '{characterName}' not found.");
         return null;
     }
 
-    // get a half body sprite of a character based on name and key input
-    public Sprite GetCharacterHalfBody(string characterName, string expressionKey)
+    public SpriteEntry GetCharacterHalfBodyEntry(string characterName, string key)
     {
         if (characterDictionary.TryGetValue(characterName, out Character character))
         {
-            return character.GetHalfBody(expressionKey);
+            return character.GetHalfBodyEntry(key);
         }
 
         Debug.LogWarning($"Character '{characterName}' not found.");
         return null;
     }
-
-
-
 }

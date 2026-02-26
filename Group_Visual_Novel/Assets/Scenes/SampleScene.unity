@@ -129,7 +129,7 @@ GameObject:
   m_Component:
   - component: {fileID: 60132054}
   m_Layer: 0
-  m_Name: Lady
+  m_Name: Willow
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -811,14 +811,18 @@ MonoBehaviour:
     fullBodySpriteEntries:
     - key: walk1
       sprite: {fileID: 3199199379494827401, guid: e0d5e14b9a7fe5046a4fd03464de8ebc, type: 3}
+      offset: {x: 0, y: 0}
     - key: walk2
       sprite: {fileID: 2366348700186609054, guid: a77b00cfbfeea9e4ca92f3bee1248563, type: 3}
+      offset: {x: 0, y: 0}
     - key: walk3
       sprite: {fileID: 2740273687135984111, guid: 58a93ae4f6b66404ebe0f8ffbefb4a3c, type: 3}
+      offset: {x: 0, y: 0}
     - key: walk4
       sprite: {fileID: 8686443786336607562, guid: 232536b6579ce9c4e8376e7a54ba92f6, type: 3}
+      offset: {x: 0, y: 0}
     halfBodySpriteEntries: []
-  willowDisplay: {fileID: 1985779631}
+  willowDisplay: {fileID: 0}
 --- !u!1 &723440360
 GameObject:
   m_ObjectHideFlags: 0
@@ -1484,7 +1488,7 @@ GameObject:
   - component: {fileID: 1985779630}
   - component: {fileID: 1985779631}
   m_Layer: 0
-  m_Name: Sprite
+  m_Name: WillowSprite
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
