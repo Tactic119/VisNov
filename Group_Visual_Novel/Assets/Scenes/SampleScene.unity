@@ -754,9 +754,10 @@ GameObject:
   m_Component:
   - component: {fileID: 696594654}
   - component: {fileID: 696594653}
+  - component: {fileID: 696594655}
   m_Layer: 0
   m_Name: Managers
-  m_TagString: Untagged
+  m_TagString: ManagerObject
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -793,6 +794,31 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &696594655
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 696594652}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ee51ded21cf50c1418dc1396a1434173, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  characters:
+  - characterName: Willow
+    fullBodySpriteEntries:
+    - key: walk1
+      sprite: {fileID: 3199199379494827401, guid: e0d5e14b9a7fe5046a4fd03464de8ebc, type: 3}
+    - key: walk2
+      sprite: {fileID: 2366348700186609054, guid: a77b00cfbfeea9e4ca92f3bee1248563, type: 3}
+    - key: walk3
+      sprite: {fileID: 2740273687135984111, guid: 58a93ae4f6b66404ebe0f8ffbefb4a3c, type: 3}
+    - key: walk4
+      sprite: {fileID: 8686443786336607562, guid: 232536b6579ce9c4e8376e7a54ba92f6, type: 3}
+    halfBodySpriteEntries: []
+  willowDisplay: {fileID: 1985779631}
 --- !u!1 &723440360
 GameObject:
   m_ObjectHideFlags: 0
@@ -1456,6 +1482,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1985779629}
   - component: {fileID: 1985779630}
+  - component: {fileID: 1985779631}
   m_Layer: 0
   m_Name: Sprite
   m_TagString: Untagged
@@ -1522,7 +1549,7 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 2
-  m_Sprite: {fileID: 2366348700186609054, guid: a77b00cfbfeea9e4ca92f3bee1248563, type: 3}
+  m_Sprite: {fileID: 2740273687135984111, guid: 58a93ae4f6b66404ebe0f8ffbefb4a3c, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -1533,6 +1560,20 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
+--- !u!114 &1985779631
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1985779628}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e8622ca1c89596944ac12d2c3e8949d5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  characterName: Willow
+  targetRenderer: {fileID: 0}
 --- !u!1 &2050093482
 GameObject:
   m_ObjectHideFlags: 0
