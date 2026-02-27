@@ -811,7 +811,7 @@ MonoBehaviour:
     fullBodySpriteEntries:
     - key: walk1
       sprite: {fileID: 3199199379494827401, guid: e0d5e14b9a7fe5046a4fd03464de8ebc, type: 3}
-      offset: {x: 0, y: 0}
+      offset: {x: -0.46, y: 0}
     - key: walk2
       sprite: {fileID: 2366348700186609054, guid: a77b00cfbfeea9e4ca92f3bee1248563, type: 3}
       offset: {x: 0, y: 0}
